@@ -67,8 +67,8 @@ func (t *Tree) Generate(preLeaves [][]byte) error {
 		levelLen := len(level)
 		remainder := levelLen % 2
 		nextLevel := make([][]byte, levelLen/2+remainder)
-		k := 0
 
+		k := 0
 		for j := 0; j < len(level)-1; j += 2 {
 			left := level[j]
 			right := level[j+1]

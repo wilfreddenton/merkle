@@ -37,7 +37,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	total := 0.0
-	for i := 0; i < 100; i += 1 {
+	for i := 0; i < 1000; i += 1 {
 		start := time.Now()
 		tree := NewTree()
 		tree.Generate(preLeaves)
@@ -45,7 +45,7 @@ func TestGenerate(t *testing.T) {
 	}
 	fmt.Println(total / 100)
 	total = 0.0
-	for i := 0; i < 100; i += 1 {
+	for i := 0; i < 1000; i += 1 {
 		start := time.Now()
 		tree1 := merkle.NewTree()
 		tree1.Generate(preLeaves, sha256.New())
@@ -99,34 +99,25 @@ func TestShard(t *testing.T) {
 //
 // 	d := depth(n)
 // 	t.levels = make([][][]byte, d+1)
-// 	leaves := make([][]byte, n)
 //
-// 	for i, preLeaf := range preLeaves {
-// 		leaves[i] = leafHash(preLeaf)
+// 	for _, preLeaf := range preLeaves {
+// 		t.levels[d] = append(t.levels[d], leafHash(preLeaf))
 // 	}
-//
-// 	t.levels[d] = leaves
 //
 // 	for i := d; i > 0; i -= 1 {
 // 		level := t.levels[i]
-// 		levelLen := len(level)
-// 		remainder := levelLen % 2
-// 		nextLevel := make([][]byte, levelLen/2+remainder)
 //
-// 		k := 0
 // 		for j := 0; j < len(level)-1; j += 2 {
 // 			left := level[j]
 // 			right := level[j+1]
 //
-// 			nextLevel[k] = internalHash(append(left, right...))
-// 			k += 1
+// 			parent := internalHash(append(left, right...))
+// 			t.levels[i-1] = append(t.levels[i-1], parent)
 // 		}
 //
-// 		if remainder != 0 {
-// 			nextLevel[k] = level[len(level)-1]
+// 		if len(level)%2 != 0 {
+// 			t.levels[i-1] = append(t.levels[i-1], level[len(level)-1])
 // 		}
-//
-// 		t.levels[i-1] = nextLevel
 // 	}
 //
 // 	return nil
