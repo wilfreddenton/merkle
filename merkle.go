@@ -2,9 +2,15 @@ package merkle
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"math"
+)
+
+const (
+	POSITION_LEFT  = "left"
+	POSITION_RIGHT = "right"
 )
 
 func depth(n int) int {
@@ -25,6 +31,11 @@ func internalHash(data []byte) []byte {
 	return hash(append([]byte{0x01}, data...))
 }
 
+type Node struct {
+	Hash     []byte
+	Position string
+}
+
 type Tree struct {
 	levels [][][]byte
 }
@@ -43,6 +54,39 @@ func (t *Tree) Depth() int {
 	}
 
 	return len(t.levels) - 1
+}
+
+func (t *Tree) MerklePath(index int) []*Node {
+	if t.levels == nil {
+		return nil
+	}
+
+	d := t.Depth()
+	var path []*Node
+
+	for i := d; i > 0; i -= 1 {
+		level := t.levels[i]
+		levelLen := len(level)
+		remainder := levelLen % 2
+		nextIndex := index / 2
+
+		// if index is the the last item in an odd length level promote
+		if index == levelLen-1 && remainder != 0 {
+			index = nextIndex
+			continue
+		}
+
+		// if i is odd we want to get the left sibling
+		if index%2 != 0 {
+			path = append(path, &Node{Hash: level[index-1], Position: POSITION_LEFT})
+		} else {
+			path = append(path, &Node{Hash: level[index+1], Position: POSITION_RIGHT})
+		}
+
+		index = nextIndex
+	}
+
+	return path
 }
 
 func (t *Tree) Generate(preLeaves [][]byte) error {
@@ -108,4 +152,17 @@ func Shard(r io.Reader, shardSize int) ([][]byte, error) {
 		shard = shard[:n]
 		shards = append(shards, shard)
 	}
+}
+
+func Prove(leaf, root []byte, path []*Node) bool {
+	hash := leaf
+	for _, node := range path {
+		if node.Position == POSITION_LEFT {
+			hash = internalHash(append(node.Hash, hash...))
+		} else {
+			hash = internalHash(append(hash, node.Hash...))
+		}
+	}
+
+	return hex.EncodeToString(hash) == hex.EncodeToString(root)
 }

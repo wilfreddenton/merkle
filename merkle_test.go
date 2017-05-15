@@ -3,14 +3,30 @@ package merkle
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/xsleonard/go-merkle"
 )
+
+var preLeaves [][]byte
+
+func TestMain(m *testing.M) {
+	f, err := os.Open("./test/test.gif")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	preLeaves, err = Shard(f, 1024)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	code := m.Run()
+	os.Exit(code)
+}
 
 func TestHash(t *testing.T) {
 	in := "2B"
@@ -24,34 +40,39 @@ func TestHash(t *testing.T) {
 }
 
 func TestGenerate(t *testing.T) {
-	f, err := os.Open("./test/test.jpg")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
+	tree := NewTree()
+	tree.Generate(preLeaves)
+	tree1 := merkle.NewTree()
+	tree1.Generate(preLeaves, sha256.New())
+
+	root := hex.EncodeToString(tree.Root())
+	root1 := hex.EncodeToString(tree1.Root().Hash)
+	if root != root1 {
+		t.Errorf("got %s; want %s", root, root1)
+	}
+}
+
+func TestMerklePath(t *testing.T) {
+	tree := NewTree()
+	tree.Generate(preLeaves)
+
+	tree.MerklePath(0)
+}
+
+func TestProve(t *testing.T) {
+	tree := NewTree()
+	tree.Generate(preLeaves)
+
+	path := tree.MerklePath(0)
+	b := Prove(leafHash(preLeaves[0]), tree.Root(), path)
+	if !b {
+		t.Errorf("should be true")
 	}
 
-	preLeaves, err := Shard(f, 1024)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
+	b = Prove(preLeaves[0], tree.Root(), path)
+	if b {
+		t.Errorf("should be false")
 	}
-
-	total := 0.0
-	for i := 0; i < 1000; i += 1 {
-		start := time.Now()
-		tree := NewTree()
-		tree.Generate(preLeaves)
-		total += time.Since(start).Seconds()
-	}
-	fmt.Println(total / 100)
-	total = 0.0
-	for i := 0; i < 1000; i += 1 {
-		start := time.Now()
-		tree1 := merkle.NewTree()
-		tree1.Generate(preLeaves, sha256.New())
-		total += time.Since(start).Seconds()
-	}
-	fmt.Println(total / 100)
 }
 
 func TestShard(t *testing.T) {
