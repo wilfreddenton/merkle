@@ -2,6 +2,7 @@ package merkle
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -16,6 +17,24 @@ func TestHash(t *testing.T) {
 	if out != s {
 		t.Errorf("got %s; want %s", s, out)
 	}
+}
+
+func TestGenerate(t *testing.T) {
+	f, err := os.Open("./test/test.jpg")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	preLeaves, err := Shard(f, 1024)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	tree := NewTree()
+	tree.Generate(preLeaves)
+	fmt.Println(hex.EncodeToString(tree.Root()))
 }
 
 func TestShard(t *testing.T) {
