@@ -36,14 +36,22 @@ func TestGenerate(t *testing.T) {
 		t.FailNow()
 	}
 
-	start := time.Now()
-	tree := NewTree()
-	tree.Generate(preLeaves)
-	fmt.Println(hex.EncodeToString(tree.Root()), time.Since(start))
-	start = time.Now()
-	tree1 := merkle.NewTree()
-	tree1.Generate(preLeaves, sha256.New())
-	fmt.Println(hex.EncodeToString(tree1.Root().Hash), time.Since(start))
+	total := 0.0
+	for i := 0; i < 100; i += 1 {
+		start := time.Now()
+		tree := NewTree()
+		tree.Generate(preLeaves)
+		total += time.Since(start).Seconds()
+	}
+	fmt.Println(total / 100)
+	total = 0.0
+	for i := 0; i < 100; i += 1 {
+		start := time.Now()
+		tree1 := merkle.NewTree()
+		tree1.Generate(preLeaves, sha256.New())
+		total += time.Since(start).Seconds()
+	}
+	fmt.Println(total / 100)
 }
 
 func TestShard(t *testing.T) {
