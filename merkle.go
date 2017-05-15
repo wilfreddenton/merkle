@@ -2,7 +2,9 @@ package merkle
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"math"
@@ -31,15 +33,60 @@ func internalHash(data []byte) []byte {
 	return hash(append([]byte{0x01}, data...))
 }
 
+// Node is used to represent the steps of a merkle path.
+// This structure is not used within the Tree structure.
 type Node struct {
-	Hash     []byte
-	Position string
+	Hash     []byte `json:"hash"`
+	Position string `json:"position"`
 }
 
+func (n *Node) MarshalJSON() ([]byte, error) {
+	type Alias Node
+	return json.Marshal(&struct {
+		Hash string `json:"hash"`
+		*Alias
+	}{
+		Hash:  base64.StdEncoding.EncodeToString(n.Hash),
+		Alias: (*Alias)(n),
+	})
+}
+
+func (n *Node) UnmarshalJSON(data []byte) error {
+	type Alias Node
+	aux := &struct {
+		Hash string `json:"hash"`
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	var err error
+	n.Hash, err = base64.StdEncoding.DecodeString(aux.Hash)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Tree is the merkle tree structure. It is implemented
+// as an array of arrays of arrays of bytes.
+// [
+//   [ root digest ],
+//   [ digest, digest ],
+//   [ digest, digest, digest, digest],
+//   ...
+//   [ leaf, leaf, leaf, leaf, ... ]
+// ]
 type Tree struct {
 	levels [][][]byte
 }
 
+// Root returns the root hash of the tree
 func (t *Tree) Root() []byte {
 	if t.levels == nil {
 		return nil
@@ -48,6 +95,7 @@ func (t *Tree) Root() []byte {
 	return t.levels[0][0]
 }
 
+// Depth returns the number of edges from the root to the leaf nodes
 func (t *Tree) Depth() int {
 	if t.levels == nil {
 		return 0
@@ -56,6 +104,8 @@ func (t *Tree) Depth() int {
 	return len(t.levels) - 1
 }
 
+// MerklePath generates an authentication path for the leaf at
+// the specified index
 func (t *Tree) MerklePath(index int) []*Node {
 	if t.levels == nil {
 		return nil
@@ -89,6 +139,7 @@ func (t *Tree) MerklePath(index int) []*Node {
 	return path
 }
 
+// Generate creates a merkle tree from an array of pre-leaves
 func (t *Tree) Generate(preLeaves [][]byte) error {
 	n := len(preLeaves)
 
@@ -135,6 +186,8 @@ func NewTree() *Tree {
 	return &Tree{levels: nil}
 }
 
+// Shard is a helper function that takes an io.Reader and
+// "shards" the data in the stream into "shardSize"d byte segments
 func Shard(r io.Reader, shardSize int) ([][]byte, error) {
 	var shards [][]byte
 	shard := make([]byte, 0, shardSize)
@@ -154,6 +207,10 @@ func Shard(r io.Reader, shardSize int) ([][]byte, error) {
 	}
 }
 
+// Prove is used to confirm that a leaf is contained within a merkle tree.
+// It does not require having access to the full tree only the leaf and root hashes
+// and the merkle path. The merkle path can be retrieved from a node in the P2P network
+// that has a copy of the full tree.
 func Prove(leaf, root []byte, path []*Node) bool {
 	hash := leaf
 	for _, node := range path {

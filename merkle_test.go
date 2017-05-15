@@ -2,7 +2,9 @@ package merkle
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
@@ -36,6 +38,66 @@ func TestHash(t *testing.T) {
 
 	if out != s {
 		t.Errorf("got %s; want %s", s, out)
+	}
+}
+
+func TestNodeJSON(t *testing.T) {
+	data := preLeaves[0]
+	dataStr := base64.StdEncoding.EncodeToString(data)
+
+	n := &Node{
+		Hash:     data,
+		Position: POSITION_LEFT,
+	}
+
+	b, err := json.Marshal(n)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	m := make(map[string]interface{})
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	if len(m) != 2 {
+		t.Errorf("got %d; want %d", len(m), 2)
+	}
+
+	if v, ok := m["hash"]; ok {
+		if v != dataStr {
+			t.Errorf("got %s; want %s", v, dataStr)
+		}
+	} else {
+		t.Errorf("hash key not found in map")
+	}
+
+	if v, ok := m["position"]; ok {
+		if v != POSITION_LEFT {
+			t.Errorf("got %s; want %s", v, POSITION_LEFT)
+		}
+	} else {
+		t.Errorf("position key not found in map")
+	}
+
+	n1 := &Node{}
+	err = json.Unmarshal(b, n1)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	nHash := hex.EncodeToString(n.Hash)
+	n1Hash := hex.EncodeToString(n1.Hash)
+	if nHash != n1Hash {
+		t.Errorf("got %s; want %s", n1Hash, nHash)
+	}
+
+	if n.Position != n1.Position {
+		t.Errorf("got %s; want %s", n.Position, n1.Position)
 	}
 }
 
