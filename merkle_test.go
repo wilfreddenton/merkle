@@ -1,11 +1,15 @@
 package merkle
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/xsleonard/go-merkle"
 )
 
 func TestHash(t *testing.T) {
@@ -32,9 +36,14 @@ func TestGenerate(t *testing.T) {
 		t.FailNow()
 	}
 
+	start := time.Now()
 	tree := NewTree()
 	tree.Generate(preLeaves)
-	fmt.Println(hex.EncodeToString(tree.Root()))
+	fmt.Println(hex.EncodeToString(tree.Root()), time.Since(start))
+	start = time.Now()
+	tree1 := merkle.NewTree()
+	tree1.Generate(preLeaves, sha256.New())
+	fmt.Println(hex.EncodeToString(tree1.Root().Hash), time.Since(start))
 }
 
 func TestShard(t *testing.T) {
@@ -72,3 +81,45 @@ func TestShard(t *testing.T) {
 		}
 	}
 }
+
+// func (t *Tree) Generate(preLeaves [][]byte) error {
+// 	n := len(preLeaves)
+//
+// 	if n == 0 {
+// 		return errors.New("Cannot create tree with 0 pre leaves")
+// 	}
+//
+// 	d := depth(n)
+// 	t.levels = make([][][]byte, d+1)
+// 	leaves := make([][]byte, n)
+//
+// 	for i, preLeaf := range preLeaves {
+// 		leaves[i] = leafHash(preLeaf)
+// 	}
+//
+// 	t.levels[d] = leaves
+//
+// 	for i := d; i > 0; i -= 1 {
+// 		level := t.levels[i]
+// 		levelLen := len(level)
+// 		remainder := levelLen % 2
+// 		nextLevel := make([][]byte, levelLen/2+remainder)
+//
+// 		k := 0
+// 		for j := 0; j < len(level)-1; j += 2 {
+// 			left := level[j]
+// 			right := level[j+1]
+//
+// 			nextLevel[k] = internalHash(append(left, right...))
+// 			k += 1
+// 		}
+//
+// 		if remainder != 0 {
+// 			nextLevel[k] = level[len(level)-1]
+// 		}
+//
+// 		t.levels[i-1] = nextLevel
+// 	}
+//
+// 	return nil
+// }

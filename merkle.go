@@ -54,25 +54,34 @@ func (t *Tree) Generate(preLeaves [][]byte) error {
 
 	d := depth(n)
 	t.levels = make([][][]byte, d+1)
+	leaves := make([][]byte, n)
 
-	for _, preLeaf := range preLeaves {
-		t.levels[d] = append(t.levels[d], leafHash(preLeaf))
+	for i, preLeaf := range preLeaves {
+		leaves[i] = leafHash(preLeaf)
 	}
+
+	t.levels[d] = leaves
 
 	for i := d; i > 0; i -= 1 {
 		level := t.levels[i]
+		levelLen := len(level)
+		remainder := levelLen % 2
+		nextLevel := make([][]byte, levelLen/2+remainder)
+		k := 0
 
 		for j := 0; j < len(level)-1; j += 2 {
 			left := level[j]
 			right := level[j+1]
 
-			parent := internalHash(append(left, right...))
-			t.levels[i-1] = append(t.levels[i-1], parent)
+			nextLevel[k] = internalHash(append(left, right...))
+			k += 1
 		}
 
-		if len(level)%2 != 0 {
-			t.levels[i-1] = append(t.levels[i-1], level[len(level)-1])
+		if remainder != 0 {
+			nextLevel[k] = level[len(level)-1]
 		}
+
+		t.levels[i-1] = nextLevel
 	}
 
 	return nil
