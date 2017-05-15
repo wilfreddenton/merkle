@@ -86,6 +86,21 @@ type Tree struct {
 	levels [][][]byte
 }
 
+func (t *Tree) findIndex(leaf []byte) int {
+	if t.levels == nil {
+		return -1
+	}
+
+	s := hex.EncodeToString(leaf)
+	for i, l := range t.levels[t.Depth()] {
+		if hex.EncodeToString(l) == s {
+			return i
+		}
+	}
+
+	return -1
+}
+
 // Root returns the root hash of the tree
 func (t *Tree) Root() []byte {
 	if t.levels == nil {
@@ -104,10 +119,12 @@ func (t *Tree) Depth() int {
 	return len(t.levels) - 1
 }
 
-// MerklePath generates an authentication path for the leaf at
-// the specified index
-func (t *Tree) MerklePath(index int) []*Node {
-	if t.levels == nil {
+// MerklePath generates an authentication path for the leaf.
+// If the leaf is not contained in the tree than the return
+// value is nil.
+func (t *Tree) MerklePath(leaf []byte) []*Node {
+	index := t.findIndex(leaf)
+	if index < 0 {
 		return nil
 	}
 
@@ -139,7 +156,8 @@ func (t *Tree) MerklePath(index int) []*Node {
 	return path
 }
 
-// Generate creates a merkle tree from an array of pre-leaves
+// Generate creates a merkle tree from an array of pre-leaves.
+// Pre-leaves are represent as an array of bytes
 func (t *Tree) Generate(preLeaves [][]byte) error {
 	n := len(preLeaves)
 
@@ -208,8 +226,8 @@ func Shard(r io.Reader, shardSize int) ([][]byte, error) {
 }
 
 // Prove is used to confirm that a leaf is contained within a merkle tree.
-// It does not require having access to the full tree only the leaf and root hashes
-// and the merkle path. The merkle path can be retrieved from a node in the P2P network
+// It does not require the full tree, only the leaf and root hashes and the
+// merkle path. The merkle path can be retrieved from a node in the P2P network
 // that has a copy of the full tree.
 func Prove(leaf, root []byte, path []*Node) bool {
 	hash := leaf

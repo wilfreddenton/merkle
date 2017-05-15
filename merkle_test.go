@@ -118,20 +118,23 @@ func TestMerklePath(t *testing.T) {
 	tree := NewTree()
 	tree.Generate(preLeaves)
 
-	tree.MerklePath(0)
+	tree.MerklePath(preLeaves[0])
 }
 
 func TestProve(t *testing.T) {
 	tree := NewTree()
 	tree.Generate(preLeaves)
 
-	path := tree.MerklePath(0)
-	b := Prove(leafHash(preLeaves[0]), tree.Root(), path)
+	preLeaf := preLeaves[0]
+	leaf := leafHash(preLeaf)
+	path := tree.MerklePath(leaf)
+	b := Prove(leaf, tree.Root(), path)
 	if !b {
 		t.Errorf("should be true")
 	}
 
-	b = Prove(preLeaves[0], tree.Root(), path)
+	// use preLeaf as invalid hash
+	b = Prove(preLeaf, tree.Root(), path)
 	if b {
 		t.Errorf("should be false")
 	}
