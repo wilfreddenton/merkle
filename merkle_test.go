@@ -18,6 +18,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer f.Close()
 
 	preLeaves, err = Shard(f, 1024)
 	if err != nil {
@@ -28,18 +29,49 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestFindIndex(t *testing.T) {
+	tree := NewTree()
+	tree.Hash(preLeaves, sha256.New())
+
+	// TEST valid leafs
+	for i, preLeaf := range preLeaves {
+		leaf := tree.leafHash(preLeaf)
+		if tree.findIndex(leaf) < 0 {
+			t.Errorf("leaf at index %d should be in tree", i)
+		}
+	}
+
+	// TEST invalid leafs
+	for i := 0; i < 10; i += 1 {
+		buf := make([]byte, 64)
+		leaf := tree.leafHash(buf)
+		if tree.findIndex(leaf) > -1 {
+			t.Errorf("leaf at index %d should not be in tree", i)
+		}
+	}
+}
+
 func TestHasher(t *testing.T) {
-	in := "2B"
-	out := "5c19c5dfd9c3b4a25e2d34dc6eac5e5c2d6200aa5e3267e8423ccb679525be61"
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{"2B", "5c19c5dfd9c3b4a25e2d34dc6eac5e5c2d6200aa5e3267e8423ccb679525be61"},
+		{"9S", "a9c7d3f3c1a0267175cb4b6fde9c8beabf30ff2b4378728b7b4dd7c3ca5c2232"},
+		{"A2", "c8361f9b468e68c86da024270e0949ce139cb704b8d7cce586681b99f3a7ea56"},
+	}
 
-	s := hex.EncodeToString(hasher([]byte(in), sha256.New()))
+	for i, test := range tests {
+		s := hex.EncodeToString(hasher([]byte(test.in), sha256.New()))
 
-	if out != s {
-		t.Errorf("got %s; want %s", s, out)
+		if test.out != s {
+			t.Errorf("for test index %d: got %s; want %s", i, s, test.out)
+		}
 	}
 }
 
 func TestNodeJSON(t *testing.T) {
+	// TEST valid node
 	data := preLeaves[0]
 	dataStr := base64.StdEncoding.EncodeToString(data)
 
@@ -97,6 +129,33 @@ func TestNodeJSON(t *testing.T) {
 	if n.Position != n1.Position {
 		t.Errorf("got %s; want %s", n.Position, n1.Position)
 	}
+
+	// TEST invalid node
+	m = map[string]interface{}{
+		"hash": 1,
+	}
+	b, err = json.Marshal(&m)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(b, n)
+	if err == nil {
+		t.Error("should be error")
+	}
+
+	m = map[string]interface{}{
+		"hash": "^^^^^",
+	}
+	b, err = json.Marshal(&m)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(b, n)
+	if err == nil {
+		t.Error("should be error")
+	}
 }
 
 func TestProve(t *testing.T) {
@@ -107,8 +166,8 @@ func TestProve(t *testing.T) {
 		out  bool
 	}{
 		{
-			internalHash([]byte("2B"), sha256.New()),
-			internalHash([]byte("2B"), sha256.New()),
+			leafHash([]byte("2B"), sha256.New()),
+			leafHash([]byte("2B"), sha256.New()),
 			[]*Node{},
 			true,
 		},
@@ -186,7 +245,7 @@ func TestMerklePath(t *testing.T) {
 
 	for _, preLeaf := range preLeaves {
 		// create the leaf hash
-		leaf := leafHash(preLeaf, sha256.New())
+		leaf := tree.leafHash(preLeaf)
 
 		// get the merkle path
 		path := tree.MerklePath(leaf)
@@ -211,7 +270,6 @@ func TestShard(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	defer f.Close()
 
 	buf, err := ioutil.ReadAll(f)
 	if err != nil {
@@ -221,12 +279,13 @@ func TestShard(t *testing.T) {
 
 	n := len(buf)
 
+	// TEST valid io.Reader
 	for i := 1; i <= 10; i += 1 {
 		f.Seek(0, 0)
 
-		shards, err := Shard(f, n/i)
+		shards, e := Shard(f, n/i)
 		if err != nil {
-			t.Error(err)
+			t.Error(e)
 			t.FailNow()
 		}
 
@@ -238,6 +297,14 @@ func TestShard(t *testing.T) {
 		if n != count {
 			t.Errorf("got count %d; want %d", count, n)
 		}
+	}
+
+	// TEST invalid io.Reader
+	f.Seek(0, 0)
+	f.Close()
+	_, err = Shard(f, 64)
+	if err == nil {
+		t.Error("should error")
 	}
 }
 
