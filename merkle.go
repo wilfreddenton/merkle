@@ -168,7 +168,7 @@ func (t *Tree) MerklePath(leaf []byte) []*Node {
 }
 
 // Hash creates a merkle tree from an array of pre-leaves.
-// Pre-leaves are represent as an array of bytes.
+// Pre-leaves are represented as an array of bytes.
 func (t *Tree) Hash(preLeaves [][]byte, h hash.Hash) error {
 	n := len(preLeaves)
 
@@ -247,10 +247,12 @@ func Prove(leaf, root []byte, path []*Node, h hash.Hash) bool {
 	hash := leaf
 	for _, node := range path {
 		if node.Position == POSITION_LEFT {
-			hash = internalHash(append(node.Hash, hash...), h)
+			hash = append(node.Hash, hash...)
 		} else {
-			hash = internalHash(append(hash, node.Hash...), h)
+			hash = append(hash, node.Hash...)
 		}
+
+		hash = internalHash(hash, h)
 	}
 
 	return hex.EncodeToString(hash) == hex.EncodeToString(root)

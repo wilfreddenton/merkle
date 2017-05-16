@@ -9,8 +9,6 @@ import (
 	"log"
 	"os"
 	"testing"
-
-	"github.com/xsleonard/go-merkle"
 )
 
 var preLeaves [][]byte
@@ -101,39 +99,99 @@ func TestNodeJSON(t *testing.T) {
 	}
 }
 
-func TestGenerate(t *testing.T) {
-	tree := NewTree()
-	tree.Hash(preLeaves, sha256.New())
-	tree1 := merkle.NewTree()
-	tree1.Generate(preLeaves, sha256.New())
+func TestProve(t *testing.T) {
+	tests := []struct {
+		leaf []byte
+		root []byte
+		path []*Node
+		out  bool
+	}{
+		{
+			[]byte("2B"),
+			internalHash(
+				append(
+					[]byte("A2"),
+					internalHash(
+						append(
+							[]byte("2B"),
+							[]byte("9S")...,
+						),
+						sha256.New())...),
+				sha256.New(),
+			),
+			[]*Node{
+				&Node{Hash: []byte("9S"), Position: POSITION_RIGHT},
+				&Node{Hash: []byte("A2"), Position: POSITION_LEFT},
+			},
+			true,
+		},
+		{
+			[]byte("Commander"),
+			internalHash(
+				append(
+					internalHash(
+						append(
+							[]byte("Operator 60"),
+							[]byte("Commander")...,
+						),
+						sha256.New()),
+					[]byte("Operator 210")...,
+				),
+				sha256.New(),
+			),
+			[]*Node{
+				&Node{Hash: []byte("Operator 60"), Position: POSITION_LEFT},
+				&Node{Hash: []byte("Operator 210"), Position: POSITION_RIGHT},
+			},
+			true,
+		},
+		{
+			[]byte("2B"),
+			internalHash(
+				append(
+					[]byte("A2"),
+					internalHash(
+						append(
+							[]byte("2B"),
+							[]byte("9S")...,
+						),
+						sha256.New())...),
+				sha256.New(),
+			),
+			[]*Node{
+				&Node{Hash: []byte("9S"), Position: POSITION_LEFT},
+				&Node{Hash: []byte("A2"), Position: POSITION_RIGHT},
+			},
+			false,
+		},
+	}
 
-	root := hex.EncodeToString(tree.Root())
-	root1 := hex.EncodeToString(tree1.Root().Hash)
-	if root != root1 {
-		t.Errorf("got %s; want %s", root, root1)
+	for i, test := range tests {
+		if b := Prove(test.leaf, test.root, test.path, sha256.New()); b != test.out {
+			t.Errorf("for test at index %d: got %v; want %v", i, b, test.out)
+		}
 	}
 }
 
 func TestMerklePath(t *testing.T) {
+	// hash out tree
 	tree := NewTree()
 	tree.Hash(preLeaves, sha256.New())
 
-	tree.MerklePath(preLeaves[0])
-}
-
-func TestProve(t *testing.T) {
-	tree := NewTree()
-	tree.Hash(preLeaves, sha256.New())
-
+	// create the leaf hash
 	preLeaf := preLeaves[0]
 	leaf := leafHash(preLeaf, sha256.New())
+
+	// get the merkle path
 	path := tree.MerklePath(leaf)
+
+	// prove that the leaf exists in the tree using the path
 	b := Prove(leaf, tree.Root(), path, sha256.New())
 	if !b {
 		t.Errorf("should be true")
 	}
 
-	// use preLeaf as invalid hash
+	// return fails when an invalid leaf is used
 	b = Prove(preLeaf, tree.Root(), path, sha256.New())
 	if b {
 		t.Errorf("should be false")
