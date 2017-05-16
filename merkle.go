@@ -40,6 +40,7 @@ type Node struct {
 	Position string `json:"position"`
 }
 
+// The Hash value is encoded into a base64 string
 func (n *Node) MarshalJSON() ([]byte, error) {
 	type Alias Node
 	return json.Marshal(&struct {
@@ -51,6 +52,7 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// The Hash value is decoded from a base64 encoded string
 func (n *Node) UnmarshalJSON(data []byte) error {
 	type Alias Node
 	aux := &struct {
@@ -110,7 +112,7 @@ func (t *Tree) findIndex(leaf []byte) int {
 	return -1
 }
 
-// Root returns the root hash of the tree
+// Root returns the root hash of the tree or nil if it hasn't been hashed.
 func (t *Tree) Root() []byte {
 	if t.levels == nil {
 		return nil
@@ -166,7 +168,7 @@ func (t *Tree) MerklePath(leaf []byte) []*Node {
 }
 
 // Hash creates a merkle tree from an array of pre-leaves.
-// Pre-leaves are represent as an array of bytes
+// Pre-leaves are represent as an array of bytes.
 func (t *Tree) Hash(preLeaves [][]byte, h hash.Hash) error {
 	n := len(preLeaves)
 
