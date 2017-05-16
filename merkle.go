@@ -238,9 +238,9 @@ func Shard(r io.Reader, shardSize int) ([][]byte, error) {
 }
 
 // Prove is used to confirm that a leaf is contained within a merkle tree.
-// It does not require the full tree, only the leaf and root hashes and the
-// merkle path. The merkle path can be retrieved from a node in the P2P network
-// that has a copy of the full tree.
+// It does not require the full tree, only the leaf and root hashes, the
+// merkle path, and the hash function used. The merkle path can be retrieved
+// from a node in the P2P network that has a copy of the full tree.
 func Prove(leaf, root []byte, path []*Node, h hash.Hash) bool {
 	hash := leaf
 	for _, node := range path {
