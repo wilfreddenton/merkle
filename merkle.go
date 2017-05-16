@@ -10,6 +10,9 @@ import (
 	"math"
 )
 
+// Position constants are used in merkle path nodes to denote
+// whether the node was a left child or right child. This allows
+// hash concatenation can be performed correctly.
 const (
 	POSITION_LEFT  = "left"
 	POSITION_RIGHT = "right"
