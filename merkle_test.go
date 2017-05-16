@@ -107,6 +107,12 @@ func TestProve(t *testing.T) {
 		out  bool
 	}{
 		{
+			internalHash([]byte("2B"), sha256.New()),
+			internalHash([]byte("2B"), sha256.New()),
+			[]*Node{},
+			true,
+		},
+		{
 			[]byte("2B"),
 			internalHash(
 				append(
@@ -178,23 +184,24 @@ func TestMerklePath(t *testing.T) {
 	tree := NewTree()
 	tree.Hash(preLeaves, sha256.New())
 
-	// create the leaf hash
-	preLeaf := preLeaves[0]
-	leaf := leafHash(preLeaf, sha256.New())
+	for _, preLeaf := range preLeaves {
+		// create the leaf hash
+		leaf := leafHash(preLeaf, sha256.New())
 
-	// get the merkle path
-	path := tree.MerklePath(leaf)
+		// get the merkle path
+		path := tree.MerklePath(leaf)
 
-	// prove that the leaf exists in the tree using the path
-	b := Prove(leaf, tree.Root(), path, sha256.New())
-	if !b {
-		t.Errorf("should be true")
-	}
+		// prove that the leaf exists in the tree using the path
+		b := Prove(leaf, tree.Root(), path, sha256.New())
+		if !b {
+			t.Errorf("should be true")
+		}
 
-	// return fails when an invalid leaf is used
-	b = Prove(preLeaf, tree.Root(), path, sha256.New())
-	if b {
-		t.Errorf("should be false")
+		// return fails when an invalid leaf is used
+		b = Prove(preLeaf, tree.Root(), path, sha256.New())
+		if b {
+			t.Errorf("should be false")
+		}
 	}
 }
 
@@ -231,6 +238,28 @@ func TestShard(t *testing.T) {
 		if n != count {
 			t.Errorf("got count %d; want %d", count, n)
 		}
+	}
+}
+
+func TestUnhashedTree(t *testing.T) {
+	tree := NewTree()
+
+	if tree.Depth() != 0 {
+		t.Errorf("got %d; want %d", tree.Depth(), 0)
+	}
+
+	if tree.Root() != nil {
+		t.Errorf("got %v; want %v", tree.Root(), nil)
+	}
+
+	path := tree.MerklePath([]byte("test"))
+	if path != nil {
+		t.Errorf("got %v; want %v", path, nil)
+	}
+
+	err := tree.Hash([][]byte{}, sha256.New())
+	if err == nil {
+		t.Error("should error")
 	}
 }
 
