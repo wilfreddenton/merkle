@@ -28,14 +28,6 @@ func hasher(data []byte, h hash.Hash) []byte {
 	return h.Sum(nil)
 }
 
-func leafHash(data []byte, h hash.Hash) []byte {
-	return hasher(append([]byte{0x00}, data...), h)
-}
-
-func internalHash(data []byte, h hash.Hash) []byte {
-	return hasher(append([]byte{0x01}, data...), h)
-}
-
 // Node is used to represent the steps of a merkle path.
 // This structure is not used within the Tree structure.
 type Node struct {
@@ -93,11 +85,11 @@ type Tree struct {
 }
 
 func (t *Tree) leafHash(leaf []byte) []byte {
-	return leafHash(leaf, t.h)
+	return LeafHash(leaf, t.h)
 }
 
 func (t *Tree) internalHash(digest []byte) []byte {
-	return internalHash(digest, t.h)
+	return InternalHash(digest, t.h)
 }
 
 func (t *Tree) findIndex(leaf []byte) int {
@@ -221,6 +213,18 @@ func NewTree() *Tree {
 	return &Tree{levels: nil}
 }
 
+// LeafHash is the hash function used to convert pre-leaves into leaves.
+// It prepends the `0x00` byte to the data byte array.
+func LeafHash(data []byte, h hash.Hash) []byte {
+	return hasher(append([]byte{0x00}, data...), h)
+}
+
+// InternalHash is the hash function used to hash the concatenation of two digests.
+// It prepends the `0x01` byte to the data byte array.
+func InternalHash(data []byte, h hash.Hash) []byte {
+	return hasher(append([]byte{0x01}, data...), h)
+}
+
 // Shard is a helper function that takes an io.Reader and
 // "shards" the data in the stream into "shardSize"d byte segments
 func Shard(r io.Reader, shardSize int) ([][]byte, error) {
@@ -255,7 +259,7 @@ func Prove(leaf, root []byte, path []*Node, h hash.Hash) bool {
 			hash = append(hash, node.Hash...)
 		}
 
-		hash = internalHash(hash, h)
+		hash = InternalHash(hash, h)
 	}
 
 	return hex.EncodeToString(hash) == hex.EncodeToString(root)

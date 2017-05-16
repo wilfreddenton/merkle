@@ -166,17 +166,17 @@ func TestProve(t *testing.T) {
 		out  bool
 	}{
 		{
-			leafHash([]byte("2B"), sha256.New()),
-			leafHash([]byte("2B"), sha256.New()),
+			LeafHash([]byte("2B"), sha256.New()),
+			LeafHash([]byte("2B"), sha256.New()),
 			[]*Node{},
 			true,
 		},
 		{
 			[]byte("2B"),
-			internalHash(
+			InternalHash(
 				append(
 					[]byte("A2"),
-					internalHash(
+					InternalHash(
 						append(
 							[]byte("2B"),
 							[]byte("9S")...,
@@ -192,9 +192,9 @@ func TestProve(t *testing.T) {
 		},
 		{
 			[]byte("Commander"),
-			internalHash(
+			InternalHash(
 				append(
-					internalHash(
+					InternalHash(
 						append(
 							[]byte("Operator 60"),
 							[]byte("Commander")...,
@@ -212,10 +212,10 @@ func TestProve(t *testing.T) {
 		},
 		{
 			[]byte("2B"),
-			internalHash(
+			InternalHash(
 				append(
 					[]byte("A2"),
-					internalHash(
+					InternalHash(
 						append(
 							[]byte("2B"),
 							[]byte("9S")...,
