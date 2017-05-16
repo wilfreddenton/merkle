@@ -1,11 +1,11 @@
 package merkle
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"hash"
 	"io"
 	"math"
 )
@@ -19,18 +19,18 @@ func depth(n int) int {
 	return int(math.Ceil(math.Log2(float64(n))))
 }
 
-func hash(data []byte) []byte {
-	h := sha256.New()
+func hasher(data []byte, h hash.Hash) []byte {
+	defer h.Reset()
 	h.Write(data)
 	return h.Sum(nil)
 }
 
-func leafHash(data []byte) []byte {
-	return hash(append([]byte{0x00}, data...))
+func leafHash(data []byte, h hash.Hash) []byte {
+	return hasher(append([]byte{0x00}, data...), h)
 }
 
-func internalHash(data []byte) []byte {
-	return hash(append([]byte{0x01}, data...))
+func internalHash(data []byte, h hash.Hash) []byte {
+	return hasher(append([]byte{0x01}, data...), h)
 }
 
 // Node is used to represent the steps of a merkle path.
@@ -84,6 +84,15 @@ func (n *Node) UnmarshalJSON(data []byte) error {
 //   ]
 type Tree struct {
 	levels [][][]byte
+	h      hash.Hash
+}
+
+func (t *Tree) leafHash(leaf []byte) []byte {
+	return leafHash(leaf, t.h)
+}
+
+func (t *Tree) internalHash(digest []byte) []byte {
+	return internalHash(digest, t.h)
 }
 
 func (t *Tree) findIndex(leaf []byte) int {
@@ -156,21 +165,24 @@ func (t *Tree) MerklePath(leaf []byte) []*Node {
 	return path
 }
 
-// Generate creates a merkle tree from an array of pre-leaves.
+// Hash creates a merkle tree from an array of pre-leaves.
 // Pre-leaves are represent as an array of bytes
-func (t *Tree) Generate(preLeaves [][]byte) error {
+func (t *Tree) Hash(preLeaves [][]byte, h hash.Hash) error {
 	n := len(preLeaves)
 
 	if n == 0 {
 		return errors.New("Cannot create tree with 0 pre leaves")
 	}
 
+	// set tree wide hash function
+	t.h = h
+
 	d := depth(n)
 	t.levels = make([][][]byte, d+1)
 	leaves := make([][]byte, n)
 
 	for i, preLeaf := range preLeaves {
-		leaves[i] = leafHash(preLeaf)
+		leaves[i] = t.leafHash(preLeaf)
 	}
 
 	t.levels[d] = leaves
@@ -186,7 +198,7 @@ func (t *Tree) Generate(preLeaves [][]byte) error {
 			left := level[j]
 			right := level[j+1]
 
-			nextLevel[k] = internalHash(append(left, right...))
+			nextLevel[k] = t.internalHash(append(left, right...))
 			k += 1
 		}
 
@@ -229,13 +241,13 @@ func Shard(r io.Reader, shardSize int) ([][]byte, error) {
 // It does not require the full tree, only the leaf and root hashes and the
 // merkle path. The merkle path can be retrieved from a node in the P2P network
 // that has a copy of the full tree.
-func Prove(leaf, root []byte, path []*Node) bool {
+func Prove(leaf, root []byte, path []*Node, h hash.Hash) bool {
 	hash := leaf
 	for _, node := range path {
 		if node.Position == POSITION_LEFT {
-			hash = internalHash(append(node.Hash, hash...))
+			hash = internalHash(append(node.Hash, hash...), h)
 		} else {
-			hash = internalHash(append(hash, node.Hash...))
+			hash = internalHash(append(hash, node.Hash...), h)
 		}
 	}
 

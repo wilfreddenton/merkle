@@ -30,11 +30,11 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestHash(t *testing.T) {
+func TestHasher(t *testing.T) {
 	in := "2B"
 	out := "5c19c5dfd9c3b4a25e2d34dc6eac5e5c2d6200aa5e3267e8423ccb679525be61"
 
-	s := hex.EncodeToString(hash([]byte(in)))
+	s := hex.EncodeToString(hasher([]byte(in), sha256.New()))
 
 	if out != s {
 		t.Errorf("got %s; want %s", s, out)
@@ -103,7 +103,7 @@ func TestNodeJSON(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	tree := NewTree()
-	tree.Generate(preLeaves)
+	tree.Hash(preLeaves, sha256.New())
 	tree1 := merkle.NewTree()
 	tree1.Generate(preLeaves, sha256.New())
 
@@ -116,25 +116,25 @@ func TestGenerate(t *testing.T) {
 
 func TestMerklePath(t *testing.T) {
 	tree := NewTree()
-	tree.Generate(preLeaves)
+	tree.Hash(preLeaves, sha256.New())
 
 	tree.MerklePath(preLeaves[0])
 }
 
 func TestProve(t *testing.T) {
 	tree := NewTree()
-	tree.Generate(preLeaves)
+	tree.Hash(preLeaves, sha256.New())
 
 	preLeaf := preLeaves[0]
-	leaf := leafHash(preLeaf)
+	leaf := leafHash(preLeaf, sha256.New())
 	path := tree.MerklePath(leaf)
-	b := Prove(leaf, tree.Root(), path)
+	b := Prove(leaf, tree.Root(), path, sha256.New())
 	if !b {
 		t.Errorf("should be true")
 	}
 
 	// use preLeaf as invalid hash
-	b = Prove(preLeaf, tree.Root(), path)
+	b = Prove(preLeaf, tree.Root(), path, sha256.New())
 	if b {
 		t.Errorf("should be false")
 	}
