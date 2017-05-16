@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/wilfreddenton/merkle.svg?branch=master)](https://travis-ci.org/wilfreddenton/merkle)
 [![codecov](https://codecov.io/gh/wilfreddenton/merkle/branch/master/graph/badge.svg)](https://codecov.io/gh/wilfreddenton/merkle)
 
-<p><a href="https://commons.wikimedia.org/wiki/File:Hash_Tree.svg#/media/File:Hash_Tree.svg"><img src="https://upload.wikimedia.org/wikipedia/commons/9/95/Hash_Tree.svg" alt="Hash Tree.svg" height="764" width="1200"></a><br>By <a href="//commons.wikimedia.org/wiki/User:Azaghal" title="User:Azaghal">Azaghal</a> - <span class="int-own-work" lang="en">Own work</span>, <a href="http://creativecommons.org/publicdomain/zero/1.0/deed.en" title="Creative Commons Zero, Public Domain Dedication">CC0</a>, <a href="https://commons.wikimedia.org/w/index.php?curid=18157888">Link</a></p>
+<p><a href="https://commons.wikimedia.org/wiki/File:Hash_Tree.svg#/media/File:Hash_Tree.svg"><img src="https://upload.wikimedia.org/wikipedia/commons/9/95/Hash_Tree.svg" alt="Hash Tree.svg" height="407" width="640"></a><br>By <a href="//commons.wikimedia.org/wiki/User:Azaghal" title="User:Azaghal">Azaghal</a> - <span class="int-own-work" lang="en">Own work</span>, <a href="http://creativecommons.org/publicdomain/zero/1.0/deed.en" title="Creative Commons Zero, Public Domain Dedication">CC0</a>, <a href="https://commons.wikimedia.org/w/index.php?curid=18157888">Link</a></p>
 
 ## Usage
 
